@@ -355,7 +355,7 @@ void game::detectCollisions()
 
 int main() 
 {
-	std::cout << "Crazy Asteroids, author: Karol Konopka\n";
+	std::cout << "crazy_asteroids-author_Karol_Konopka\n";
 	srand((unsigned int)time(NULL));
 	
 	sf::Clock clock;
@@ -368,7 +368,7 @@ int main()
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 16;
 
-	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Crazy Asteroids!", sf::Style::Default, settings);
+	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "crazy_asteroids", sf::Style::Default, settings);
 	while (window.isOpen())
 	{
 		sf::Event event;
