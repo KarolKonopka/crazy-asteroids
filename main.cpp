@@ -2,14 +2,31 @@
 #define WIDTH 1280
 #define HEIGHT 720
 #define MAX_BULLETS 16
-#define MAX_ASTEROIDS 32
-#define MAX_PLAYERS 3
+#define MAX_ASTEROIDS 257
+#define MAX_BACKGROUND_ASTEROIDS 64
 #define MAX_MENU_LEVELS 2
+#define USE_SHADOW 1
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
+#include <string>
 #include <ctime>
+
+namespace other {
+	int MAX_PLAYERS = 2;
+	bool DIFFICULTY = 1;
+	float rand(int min, int max) {
+		return (float)(min + std::rand() % (max - min + 1));
+	};
+	void randName(char *s, int n) {
+		int i;
+		for (i = 0; i < n - 1; i++) {
+			s[i] = other::rand(33, 126);
+		}
+		s[n] = '\0';
+	}
+}
 
 class menu
 {
@@ -62,10 +79,58 @@ void menu::draw(sf::RenderWindow &window)
 	}
 }
 
-namespace others {
-	float rand(int min, int max) {
-		return (float)(min + std::rand() % (max - min + 1));
-	};
+class gui {
+private:
+	sf::Font font;
+	sf::Text text;
+public:
+	gui();
+	void drawUserStatus(sf::RenderWindow &window, int id, char *name, int points);
+	void drawTime(sf::RenderWindow &window, int time);
+};
+gui::gui() {
+	font.loadFromFile("consola.ttf");
+	text.setFont(font);
+	text.setCharacterSize(20);
+}
+void gui::drawUserStatus(sf::RenderWindow &window, int id, char *name, int points) {
+	text.setString(name + std::string(" ") + std::to_string(points));
+	if (id) {
+		text.setPosition(sf::Vector2f(5, 30));
+	}
+	else {
+		text.setPosition(sf::Vector2f(5, 5));
+	}
+	window.draw(text);
+}
+void gui::drawTime(sf::RenderWindow &window, int time) {
+	text.setString(std::string("time ") + std::to_string(time));
+	text.setPosition(sf::Vector2f(5, 5));
+	window.draw(text);
+}
+
+class backgroundAsteroid {
+private:
+	sf::CircleShape backgroundAsteroidShape;
+public:
+	backgroundAsteroid();
+	void draw(sf::RenderWindow &window);
+};
+backgroundAsteroid::backgroundAsteroid() {
+	int r = other::rand(5, 40);
+	int alfa = other::rand(16, 128);
+	backgroundAsteroidShape.setPointCount(5);
+	backgroundAsteroidShape.setOutlineThickness(2.f);
+	backgroundAsteroidShape.setOutlineColor(sf::Color(255, 255, 255, alfa));
+	backgroundAsteroidShape.setFillColor(sf::Color::Transparent);
+	backgroundAsteroidShape.setRadius(r);
+	backgroundAsteroidShape.setOrigin(r, r);
+	backgroundAsteroidShape.setRotation(other::rand(0, 360));
+	backgroundAsteroidShape.setPosition(other::rand(0, WIDTH), other::rand(0, HEIGHT));
+
+}
+void backgroundAsteroid::draw(sf::RenderWindow &window) {
+	window.draw(backgroundAsteroidShape);
 }
 
 class asteroid
@@ -75,17 +140,20 @@ private:
 	float r;
 	float deltaAlfa;
 	int phase;
+	bool difficulty;
 	sf::Vector2f deltaPosition;
 	sf::CircleShape asteroidShape;
 	sf::CircleShape asteroidShadow;
 public:
 	asteroid();
-	void init(float = -1, float = -1, int = 0);
+	void init(float = -1, float = -1, int = 0, bool difficultyIn = other::DIFFICULTY);
 	void draw(sf::RenderWindow &window);
 	void move();
 	bool isAlive() { return alive; };
+	void setAlive(bool value) { alive = value; };
 	sf::Vector2f getPosition() { return asteroidShape.getPosition(); };
 	float getR() { return r; };
+	int getPhase() { return phase; };
 };
 asteroid::asteroid()
 {
@@ -96,28 +164,29 @@ asteroid::asteroid()
 	asteroidShape.setFillColor(sf::Color::Transparent);
 	asteroidShadow.setFillColor(sf::Color(255, 0, 97, 128));
 }
-void asteroid::init(float xIn, float yIn, int phaseIn)
+void asteroid::init(float xIn, float yIn, int phaseIn, bool difficultyIn)
 {
+	difficulty = difficultyIn;
 	phase = phaseIn;
 	r = (float)80 - phase * 30;
 	if (r == 80) {
-		deltaPosition = sf::Vector2f((others::rand(0, 100) - 50) / 100, (others::rand(0, 100) - 50) / 100);
-		deltaAlfa = (others::rand(0, 100) - 50) / 100;
+		deltaPosition = sf::Vector2f((other::rand(0, 100) - 50) / (!difficulty ? 100 : 40), (other::rand(0, 100) - 50) / (!difficulty ? 100 : 40));
+		deltaAlfa = (other::rand(0, 100) - 50) / 100;
 	}
 	else if (r == 50) {
-		deltaPosition = sf::Vector2f((others::rand(0, 100) - 50) / 60, (others::rand(0, 100) - 50) / 80);
-		deltaAlfa = (others::rand(0, 100) - 50) / 60;
+		deltaPosition = sf::Vector2f((other::rand(0, 100) - 50) / (!difficulty ? 60 : 20), (other::rand(0, 100) - 50) / (!difficulty ? 60 : 20));
+		deltaAlfa = (other::rand(0, 100) - 50) / 60;
 	}
 	else if (r == 20) {
-		deltaPosition = sf::Vector2f((others::rand(0, 100) - 50) / 40, (others::rand(0, 100) - 50) / 60);
-		deltaAlfa = (others::rand(0, 100) - 50) / 20;
+		deltaPosition = sf::Vector2f((other::rand(0, 100) - 50) / (!difficulty ? 20 : 10), (other::rand(0, 100) - 50) / (!difficulty ? 20 : 10));
+		deltaAlfa = (other::rand(0, 100) - 50) / 20;
 	}
 	asteroidShape.setRadius(r);
 	asteroidShape.setOrigin(r, r);
 	asteroidShadow.setRadius(r);
 	asteroidShadow.setOrigin(r, r);
 	if ((xIn == -1) && (yIn = -1)) {
-		asteroidShape.setPosition(others::rand(0, WIDTH), others::rand(0, HEIGHT));
+		asteroidShape.setPosition(other::rand(0, WIDTH), other::rand(0, HEIGHT));
 	}
 	else {
 		asteroidShape.setPosition(xIn, yIn);
@@ -127,7 +196,9 @@ void asteroid::init(float xIn, float yIn, int phaseIn)
 }
 void asteroid::draw(sf::RenderWindow &window)
 {
-	window.draw(asteroidShadow);
+	if (USE_SHADOW) {
+		window.draw(asteroidShadow);
+	}
 	window.draw(asteroidShape);
 }
 void asteroid::move()
@@ -154,29 +225,72 @@ void asteroid::move()
 class bullet
 {
 private:
-	int id;
+	int playerId;
 	bool alive;
 	float r;
 	int aliveFor;
-	sf::Vector2f deltaPositnion;
+	sf::Vector2f deltaPosition;
 	sf::CircleShape bulletShape;
 public:
 	bullet();
+	void init(sf::Vector2f positionIn, sf::Vector2f deltaPositionIn, int playerIdIn);
+	void draw(sf::RenderWindow &window);
 	void move();
+	bool isAlive() { return alive; };
+	void setAlive(bool value) { alive = value; };
+	int getPlayerId() { return playerId; };
+	sf::Vector2f getPosition() { return bulletShape.getPosition(); };
 };
+bullet::bullet() {
+	alive = false;
+	aliveFor = 0;
+	bulletShape.setRadius(4.f);
+	bulletShape.setOrigin(sf::Vector2f(4, 4));
+}
+void bullet::init(sf::Vector2f positionIn, sf::Vector2f deltaPositionIn, int playerIdIn) {
+	bulletShape.setPosition(positionIn);
+	deltaPosition.x = deltaPositionIn.x;
+	deltaPosition.y = deltaPositionIn.y;
+	playerId = playerIdIn;
+	aliveFor = 0;
+	alive = true;
+}
+void bullet::draw(sf::RenderWindow &window)
+{
+	window.draw(bulletShape);
+}
+void bullet::move() {
+	if (alive) {
+		if (bulletShape.getPosition().x > WIDTH || bulletShape.getPosition().x < 0) deltaPosition.x = -deltaPosition.x;
+		if (bulletShape.getPosition().y > HEIGHT || bulletShape.getPosition().y < 0) deltaPosition.y = -deltaPosition.y;
+
+		bulletShape.setPosition(bulletShape.getPosition() + deltaPosition);
+		if (aliveFor > 40) {
+			alive = false;
+			aliveFor = 0;
+		}
+		else aliveFor++;
+	}
+}
 
 class player
 {
 private:
 	int id;
+	int points;
 	bool alive;
+	char *name;
 	float r;
 	float shapeAlfa;
 	float maxPositionDelta;
 	float acceleration;
+	int nFire;
 	sf::Vector2f deltaPosition;
 	sf::ConvexShape playerShape;
 	sf::CircleShape playerShadow;
+	sf::Texture fireTexture;
+	sf::IntRect fireShape;
+	sf::Sprite fire;
 	bool up;
 	bool left;
 	bool right;
@@ -185,9 +299,16 @@ public:
 	void init(int idIn);
 	void draw(sf::RenderWindow &window);
 	void move();
+	sf::Vector2f getBulletVelocity();
+	void addPoints(int pointsIn) { points += pointsIn; };
+	void setUp(bool value) { up = value; };
+	void setLeft(bool value) { left = value; };
+	void setRight(bool value) { right = value; };
 	bool isAlive() { return alive; };
 	sf::Vector2f getPosition() { return playerShape.getPosition(); };
 	float getR() { return r; };
+	char *getName() { return name; };
+	int getPoints() { return points; };
 };
 player::player()
 {
@@ -195,6 +316,9 @@ player::player()
 	up = false;
 	left = false;
 	right = false;
+	nFire = 0;
+	name = new char[9];
+	other::randName(name, 8);
 	r = 25;
 	shapeAlfa = 40;
 	acceleration = 0.2f;
@@ -211,20 +335,38 @@ player::player()
 	playerShadow.setRadius(r);
 	playerShadow.setOrigin(r, r);
 	playerShadow.setFillColor(sf::Color(0, 97, 255, 128));
+	fireTexture.loadFromFile("fire.png");
+	fire.setTexture(fireTexture);
+	fireShape.left = 0;
+	fireShape.top = 0;
+	fireShape.width = 24;
+	fireShape.height = 24;
+	fire.setTextureRect(fireShape);
+	fire.setScale(sf::Vector2f(3, 3));
+	fire.setOrigin(12, 30);
 }
 void player::init(int idIn)
 {
 	id = idIn;
-	float xIn = others::rand(0, WIDTH);
-	float yIn = others::rand(0, HEIGHT);
+	points = 0;
+	float xIn = other::rand(0, WIDTH);
+	float yIn = other::rand(0, HEIGHT);
 	playerShape.setPosition(xIn, yIn);
+	fire.setPosition(xIn, yIn);
+	fire.setRotation(180 + playerShape.getRotation());
 	playerShadow.setPosition(playerShape.getPosition());
-	playerShape.setRotation(others::rand(0, 360));
+	playerShape.setRotation(other::rand(0, 360));
 	alive = true;
 }
 void player::draw(sf::RenderWindow &window)
 {
-	window.draw(playerShadow);
+	if (USE_SHADOW) {
+		window.draw(playerShadow);
+	}
+	if (up) {
+		window.draw(fire);
+	}
+
 	window.draw(playerShape);
 }
 void player::move() {
@@ -260,34 +402,56 @@ void player::move() {
 		newPos.y = HEIGHT + (1.5f * r);
 	}
 	playerShape.setPosition(newPos);
+	fire.setPosition(newPos);
+	fire.setRotation(180 + playerShape.getRotation());
 	playerShadow.setPosition(playerShape.getPosition());
+	nFire++;
+	if (nFire >= 10) {
+		fireShape.left += 24;
+		if (fireShape.left >= 168) fireShape.left = 0;
+		fire.setTextureRect(fireShape);
+		nFire = 0;
+	}
+}
+sf::Vector2f player::getBulletVelocity() {
+	float vX = sinf(playerShape.getRotation() * (float)M_PI / 180);
+	float vY = -cosf(playerShape.getRotation() * (float)M_PI / 180);
+	return sf::Vector2f(vX, vY);
 }
 
 class game
 {
 private:
 	asteroid *asteroidsArray;
+	bullet *bulletsArray;
 	player *playersArray;
+	backgroundAsteroid *backgroundAsteroidsArray;
+	gui gameGui;
+	int nGui;
+	bool stateGui;
+	sf::Clock clock;
 public:
 	game();
 	void init();
 	void draw(sf::RenderWindow &window);
 	void move();
 	void detectCollisions();
+	void setKey(int key, int playerNumber, bool value);
 };
 game::game()
 {
-	playersArray = new player[MAX_PLAYERS];
+	nGui = 0;
+	playersArray = new player[other::MAX_PLAYERS];
+	bulletsArray = new bullet[MAX_BULLETS];
 	asteroidsArray = new asteroid[MAX_ASTEROIDS];
-
+	backgroundAsteroidsArray = new backgroundAsteroid[MAX_BACKGROUND_ASTEROIDS];
 }
 void game::init()
 {
-	playersArray[0].init(0);
-	playersArray[1].init(1);
-	playersArray[2].init(2);
-
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < other::MAX_PLAYERS; i++) {
+		playersArray[i].init(i);
+	}
+	for (int i = 0; i < (other::DIFFICULTY ? 8 : 4); i++) {
 		for (int j = 0; j < MAX_ASTEROIDS; j++)
 		{
 			if (!asteroidsArray[j].isAlive()) {
@@ -296,9 +460,14 @@ void game::init()
 			}
 		}
 	}
+	clock.restart();
 }
 void game::draw(sf::RenderWindow &window)
 {
+	for (int i = 0; i < MAX_BACKGROUND_ASTEROIDS; i++)
+	{
+		backgroundAsteroidsArray[i].draw(window);
+	}
 	for (int i = 0; i < MAX_ASTEROIDS; i++)
 	{
 		if (asteroidsArray[i].isAlive()) {
@@ -306,12 +475,32 @@ void game::draw(sf::RenderWindow &window)
 		}
 	}
 
-	for (int i = 0; i < MAX_PLAYERS; i++)
+	for (int i = 0; i < MAX_BULLETS; i++)
+	{
+		if (bulletsArray[i].isAlive()) {
+			bulletsArray[i].draw(window);
+		}
+	}
+
+	for (int i = 0; i < other::MAX_PLAYERS; i++)
 	{
 		if (playersArray[i].isAlive()) {
 			playersArray[i].draw(window);
 		}
 	}
+	if (stateGui) {
+		for (int i = 0; i < other::MAX_PLAYERS; i++) {
+			gameGui.drawUserStatus(window, i, playersArray[i].getName(), playersArray[i].getPoints());
+		}
+	}
+	else {
+		gameGui.drawTime(window, clock.getElapsedTime().asSeconds());
+	}
+	if (nGui >= 66 * 3) {
+		nGui = 0;
+		stateGui = !stateGui;
+	};
+	nGui++;
 }
 void game::move()
 {
@@ -321,8 +510,13 @@ void game::move()
 			asteroidsArray[i].move();
 		}
 	}
-
-	for (int i = 0; i < MAX_PLAYERS; i++)
+	for (int i = 0; i < MAX_BULLETS; i++)
+	{
+		if (bulletsArray[i].isAlive()) {
+			bulletsArray[i].move();
+		}
+	}
+	for (int i = 0; i < other::MAX_PLAYERS; i++)
 	{
 		if (playersArray[i].isAlive()) {
 			playersArray[i].move();
@@ -331,7 +525,7 @@ void game::move()
 }
 void game::detectCollisions()
 {
-	for (int i = 0; i < MAX_PLAYERS; i++)
+	for (int i = 0; i < other::MAX_PLAYERS; i++)
 	{
 		if (playersArray[i].isAlive()) {
 			for (int j = 0; j < MAX_ASTEROIDS; j++)
@@ -345,19 +539,106 @@ void game::detectCollisions()
 					float asteroidR = asteroidsArray[j].getR();
 					float playerR = playersArray[i].getR();
 					if (length <= (playerR + asteroidR)) {
-						// collision
+						//kolizja
+					}
+				}
+			}
+		}
+	}
+	for (int i = 0; i < MAX_BULLETS; i++)
+	{
+		if (bulletsArray[i].isAlive()) {
+			for (int j = 0; j < MAX_ASTEROIDS; j++)
+			{
+				if (asteroidsArray[j].isAlive()) {
+					sf::Vector2f asteroidPosition = asteroidsArray[j].getPosition();
+					sf::Vector2f bulletPosition = bulletsArray[i].getPosition();
+					float a = asteroidPosition.x - bulletPosition.x;
+					float b = asteroidPosition.y - bulletPosition.y;
+					float length = sqrtf(powf(a, 2) + powf(b, 2));
+					float asteroidR = asteroidsArray[j].getR();
+					if (length <= asteroidR) {
+						if (asteroidsArray[j].getPhase() < 2) {
+							int k = 0;
+							for (int l = 0; l < MAX_ASTEROIDS; l++) {
+								if (!asteroidsArray[l].isAlive()) {
+									asteroidsArray[l].init(asteroidsArray[j].getPosition().x, asteroidsArray[j].getPosition().y, asteroidsArray[j].getPhase() + 1);
+									k++;
+									if (k >= 4) break;
+								}
+							}
+						}
+						if (asteroidsArray[j].getPhase() == 0) playersArray[bulletsArray[i].getPlayerId()].addPoints(50);
+						else if (asteroidsArray[j].getPhase() == 1) playersArray[bulletsArray[i].getPlayerId()].addPoints(70);
+						else if (asteroidsArray[j].getPhase() == 2) playersArray[bulletsArray[i].getPlayerId()].addPoints(100);
+						asteroidsArray[j].setAlive(false);
+						bulletsArray[i].setAlive(false);
 					}
 				}
 			}
 		}
 	}
 }
+void game::setKey(int key, int playerNumber, bool value) {
+	if (playerNumber == 0) {
+		switch (key) {
+		case sf::Keyboard::Space:
+			if (value) {
+				for (int i = 0; i < MAX_BULLETS; i++) {
+					if (!bulletsArray[i].isAlive()) {
+						sf::Vector2f bulletVelocity = playersArray[0].getBulletVelocity();
+						bulletsArray[i].init(playersArray[0].getPosition() + sf::Vector2f(bulletVelocity.x * 30, bulletVelocity.y * 30), sf::Vector2f(bulletVelocity.x * 10, bulletVelocity.y * 10), 0);
+						break;
+					}
+				}
+			}
+			break;
+		case sf::Keyboard::W:
+			playersArray[0].setUp(value);
+			break;
+		case sf::Keyboard::A:
+			playersArray[0].setLeft(value);
+			break;
+		case sf::Keyboard::D:
+			playersArray[0].setRight(value);
+			break;
+		default:
+			break;
+		}
+	}
+	else if (playerNumber == 1) {
+		switch (key) {
+		case sf::Keyboard::Enter:
+			if (value) {
+				for (int i = 0; i < MAX_BULLETS; i++) {
+					if (!bulletsArray[i].isAlive()) {
+						sf::Vector2f bulletVelocity = playersArray[1].getBulletVelocity();
+						bulletsArray[i].init(playersArray[1].getPosition() + sf::Vector2f(bulletVelocity.x * 30, bulletVelocity.y * 30), sf::Vector2f(bulletVelocity.x * 10, bulletVelocity.y * 10), 1);
+						break;
+					}
+				}
+			}
+			break;
+		case sf::Keyboard::Up:
+			playersArray[1].setUp(value);
+			break;
+		case sf::Keyboard::Left:
+			playersArray[1].setLeft(value);
+			break;
+		case sf::Keyboard::Right:
+			playersArray[1].setRight(value);
+			break;
+		default:
+			break;
+		}
+	}
+}
 
-int main() 
+int main()
 {
-	std::cout << "crazy_asteroids-author_Karol_Konopka\n";
+	std::cout << "crazy_asteroids author:_Karol_Konopka\n";
 	srand((unsigned int)time(NULL));
-	
+
 	sf::Clock clock;
 	sf::Time time;
 
@@ -375,7 +656,7 @@ int main()
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed) window.close();
-			if (event.type == sf::Event::KeyPressed) 
+			if (event.type == sf::Event::KeyPressed)
 			{
 				if (activity == 0)
 				{
@@ -395,12 +676,22 @@ int main()
 					}
 				}
 				else if (activity == 1) {
-
+					if (event.key.code == sf::Keyboard::W || event.key.code == sf::Keyboard::A || event.key.code == sf::Keyboard::D || event.key.code == sf::Keyboard::Space) {
+						game.setKey(event.key.code, 0, true);
+					}
+					else if (event.key.code == sf::Keyboard::Up || event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right || event.key.code == sf::Keyboard::Enter) {
+						game.setKey(event.key.code, 1, true);
+					}
 				}
 			}
 			if (event.type == sf::Event::KeyReleased) {
 				if (activity == 1) {
-
+					if (event.key.code == sf::Keyboard::W || event.key.code == sf::Keyboard::A || event.key.code == sf::Keyboard::D || event.key.code == sf::Keyboard::Space) {
+						game.setKey(event.key.code, 0, false);
+					}
+					else if (event.key.code == sf::Keyboard::Up || event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right || event.key.code == sf::Keyboard::Enter) {
+						game.setKey(event.key.code, 1, false);
+					}
 				}
 			}
 			if (event.type == sf::Event::Resized)
@@ -410,22 +701,22 @@ int main()
 			}
 		}
 		time = clock.getElapsedTime();
-		if (time.asMilliseconds() > 16) {
+		if (time.asMilliseconds() > 15) {
 			if (activity == 1)
 			{
 				game.move();
 				game.detectCollisions();
 			}
+			window.clear();
+			if (activity == 0) {
+				menu.draw(window);
+			}
+			else if (activity == 1) {
+				game.draw(window);
+			}
+			window.display();
 			clock.restart();
 		}
-		window.clear();
-		if (activity == 0) {
-			menu.draw(window);
-		}
-		else if (activity == 1) {
-			game.draw(window);
-		}
-		window.display();
 	}
 	return 0;
 }
