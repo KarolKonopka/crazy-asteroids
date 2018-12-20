@@ -94,7 +94,7 @@ gui::gui() {
 	text.setCharacterSize(20);
 }
 void gui::drawUserStatus(sf::RenderWindow &window, int id, char *name, int points) {
-	text.setString(name + std::string(" ") + std::to_string(points));
+	text.setString(name + std::string("_") + std::to_string(points));
 	if (id) {
 		text.setPosition(sf::Vector2f(5, 30));
 	}
@@ -104,8 +104,35 @@ void gui::drawUserStatus(sf::RenderWindow &window, int id, char *name, int point
 	window.draw(text);
 }
 void gui::drawTime(sf::RenderWindow &window, int time) {
-	text.setString(std::string("time ") + std::to_string(time));
+	text.setString(std::string("time_") + std::to_string(time));
 	text.setPosition(sf::Vector2f(5, 5));
+	window.draw(text);
+}
+
+class info {
+private:
+	sf::Font font;
+	sf::Text text;
+public:
+	info();
+	void draw(sf::RenderWindow &window, std::string text1In = "", std::string text2In = "", std::string text3In = "");
+};
+info::info() {
+	font.loadFromFile("consola.ttf");
+	text.setFont(font);
+	text.setCharacterSize(40);
+	text.setFillColor(sf::Color::White);
+
+}
+void info::draw(sf::RenderWindow &window, std::string text1In, std::string text2In, std::string text3In) {
+	text.setPosition(40, HEIGHT - 180);
+	text.setString(text1In);
+	window.draw(text);
+	text.setPosition(40, HEIGHT - 130);
+	text.setString(text2In);
+	window.draw(text);
+	text.setPosition(40, HEIGHT - 80);
+	text.setString(text3In);
 	window.draw(text);
 }
 
@@ -427,9 +454,14 @@ private:
 	player *playersArray;
 	backgroundAsteroid *backgroundAsteroidsArray;
 	gui gameGui;
+	info gameInfo;
 	int nGui;
 	bool stateGui;
-	sf::Clock clock;
+	bool pause;
+	bool tmpPauseKey;
+	int time;
+	int countTime;
+	bool whichPause;
 public:
 	game();
 	void init();
@@ -437,10 +469,11 @@ public:
 	void move();
 	void detectCollisions();
 	void setKey(int key, int playerNumber, bool value);
+	void setPause(bool which, bool val);
+	bool getPause() { return pause; };
 };
 game::game()
 {
-	nGui = 0;
 	playersArray = new player[other::MAX_PLAYERS];
 	bulletsArray = new bullet[MAX_BULLETS];
 	asteroidsArray = new asteroid[MAX_ASTEROIDS];
@@ -460,7 +493,11 @@ void game::init()
 			}
 		}
 	}
-	clock.restart();
+	nGui = 0;
+	pause = 0;
+	time = 0;
+	countTime = 0;
+	tmpPauseKey = 1;
 }
 void game::draw(sf::RenderWindow &window)
 {
@@ -494,33 +531,48 @@ void game::draw(sf::RenderWindow &window)
 		}
 	}
 	else {
-		gameGui.drawTime(window, clock.getElapsedTime().asSeconds());
+		gameGui.drawTime(window, time);
 	}
-	if (nGui >= 66 * 3) {
-		nGui = 0;
-		stateGui = !stateGui;
-	};
-	nGui++;
+	if (pause) {
+		if (whichPause) {
+			gameInfo.draw(window, "pause_", "quit?_(ENTER_for_yes)", "quit_and_save?_(S_for_yes)");
+		}
+		else {
+			gameInfo.draw(window, "pause_", "first_player:_WSAD_keys_and_SPACE", "second_player:_arrow_keys_and_ENTER");
+		}
+	}
 }
 void game::move()
 {
-	for (int i = 0; i < MAX_ASTEROIDS; i++)
-	{
-		if (asteroidsArray[i].isAlive()) {
-			asteroidsArray[i].move();
+	if (!pause) {
+		for (int i = 0; i < MAX_ASTEROIDS; i++)
+		{
+			if (asteroidsArray[i].isAlive()) {
+				asteroidsArray[i].move();
+			}
 		}
-	}
-	for (int i = 0; i < MAX_BULLETS; i++)
-	{
-		if (bulletsArray[i].isAlive()) {
-			bulletsArray[i].move();
+		for (int i = 0; i < MAX_BULLETS; i++)
+		{
+			if (bulletsArray[i].isAlive()) {
+				bulletsArray[i].move();
+			}
 		}
-	}
-	for (int i = 0; i < other::MAX_PLAYERS; i++)
-	{
-		if (playersArray[i].isAlive()) {
-			playersArray[i].move();
+		for (int i = 0; i < other::MAX_PLAYERS; i++)
+		{
+			if (playersArray[i].isAlive()) {
+				playersArray[i].move();
+			}
 		}
+		countTime++;
+		if (countTime >= 50) {
+			countTime = 0;
+			time++;
+		}
+		if (nGui >= 50 * 3) {
+			nGui = 0;
+			stateGui = !stateGui;
+		};
+		nGui++;
 	}
 }
 void game::detectCollisions()
@@ -580,63 +632,83 @@ void game::detectCollisions()
 	}
 }
 void game::setKey(int key, int playerNumber, bool value) {
-	if (playerNumber == 0) {
-		switch (key) {
-		case sf::Keyboard::Space:
-			if (value) {
-				for (int i = 0; i < MAX_BULLETS; i++) {
-					if (!bulletsArray[i].isAlive()) {
-						sf::Vector2f bulletVelocity = playersArray[0].getBulletVelocity();
-						bulletsArray[i].init(playersArray[0].getPosition() + sf::Vector2f(bulletVelocity.x * 30, bulletVelocity.y * 30), sf::Vector2f(bulletVelocity.x * 10, bulletVelocity.y * 10), 0);
-						break;
+	if (!pause) {
+		if (playerNumber == 0) {
+			switch (key) {
+			case sf::Keyboard::Space:
+				if (value) {
+					for (int i = 0; i < MAX_BULLETS; i++) {
+						if (!bulletsArray[i].isAlive()) {
+							sf::Vector2f bulletVelocity = playersArray[0].getBulletVelocity();
+							bulletsArray[i].init(playersArray[0].getPosition() + sf::Vector2f(bulletVelocity.x * 30, bulletVelocity.y * 30), sf::Vector2f(bulletVelocity.x * 10, bulletVelocity.y * 10), 0);
+							break;
+						}
 					}
 				}
+				break;
+			case sf::Keyboard::W:
+				playersArray[0].setUp(value);
+				break;
+			case sf::Keyboard::A:
+				playersArray[0].setLeft(value);
+				break;
+			case sf::Keyboard::D:
+				playersArray[0].setRight(value);
+				break;
+			default:
+				break;
 			}
-			break;
-		case sf::Keyboard::W:
-			playersArray[0].setUp(value);
-			break;
-		case sf::Keyboard::A:
-			playersArray[0].setLeft(value);
-			break;
-		case sf::Keyboard::D:
-			playersArray[0].setRight(value);
-			break;
-		default:
-			break;
 		}
-	}
-	else if (playerNumber == 1) {
-		switch (key) {
-		case sf::Keyboard::Enter:
-			if (value) {
-				for (int i = 0; i < MAX_BULLETS; i++) {
-					if (!bulletsArray[i].isAlive()) {
-						sf::Vector2f bulletVelocity = playersArray[1].getBulletVelocity();
-						bulletsArray[i].init(playersArray[1].getPosition() + sf::Vector2f(bulletVelocity.x * 30, bulletVelocity.y * 30), sf::Vector2f(bulletVelocity.x * 10, bulletVelocity.y * 10), 1);
-						break;
+		else if (playerNumber == 1) {
+			switch (key) {
+			case sf::Keyboard::Enter:
+				if (value) {
+					for (int i = 0; i < MAX_BULLETS; i++) {
+						if (!bulletsArray[i].isAlive()) {
+							sf::Vector2f bulletVelocity = playersArray[1].getBulletVelocity();
+							bulletsArray[i].init(playersArray[1].getPosition() + sf::Vector2f(bulletVelocity.x * 30, bulletVelocity.y * 30), sf::Vector2f(bulletVelocity.x * 10, bulletVelocity.y * 10), 1);
+							break;
+						}
 					}
 				}
+				break;
+			case sf::Keyboard::Up:
+				playersArray[1].setUp(value);
+				break;
+			case sf::Keyboard::Left:
+				playersArray[1].setLeft(value);
+				break;
+			case sf::Keyboard::Right:
+				playersArray[1].setRight(value);
+				break;
+			default:
+				break;
 			}
-			break;
-		case sf::Keyboard::Up:
-			playersArray[1].setUp(value);
-			break;
-		case sf::Keyboard::Left:
-			playersArray[1].setLeft(value);
-			break;
-		case sf::Keyboard::Right:
-			playersArray[1].setRight(value);
-			break;
-		default:
-			break;
 		}
 	}
 }
-
+void game::setPause(bool which, bool val) {
+	whichPause = which;
+	if (tmpPauseKey == 1 && val == 1) {
+		pause = val;
+		tmpPauseKey = 0;
+	}
+	else if (tmpPauseKey == 1 && val == 0) {
+		pause = val;
+		tmpPauseKey = 1;
+	}
+	else if (tmpPauseKey == 0 && val == 1) {
+		pause = !val;
+		tmpPauseKey = 1;
+	}
+	else if (tmpPauseKey == 0 && val == 0) {
+		pause = !val;
+		tmpPauseKey = 0;
+	}
+}
 int main()
 {
-	std::cout << "crazy_asteroids author:_Karol_Konopka\n";
+	std::cout << "crazy_asteroids_author:_Karol_Konopka\n";
 	srand((unsigned int)time(NULL));
 
 	sf::Clock clock;
@@ -681,6 +753,15 @@ int main()
 					}
 					else if (event.key.code == sf::Keyboard::Up || event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right || event.key.code == sf::Keyboard::Enter) {
 						game.setKey(event.key.code, 1, true);
+						if (game.getPause()) {
+							window.close();
+						}
+					}
+					else if (event.key.code == sf::Keyboard::F1) {
+						game.setPause(0, 1);
+					}
+					else if (event.key.code == sf::Keyboard::Escape) {
+						game.setPause(1, 1);
 					}
 				}
 			}
@@ -692,6 +773,12 @@ int main()
 					else if (event.key.code == sf::Keyboard::Up || event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right || event.key.code == sf::Keyboard::Enter) {
 						game.setKey(event.key.code, 1, false);
 					}
+					else if (event.key.code == sf::Keyboard::F1) {
+						game.setPause(0, 0);
+					}
+					else if (event.key.code == sf::Keyboard::Escape) {
+						game.setPause(1, 0);
+					}
 				}
 			}
 			if (event.type == sf::Event::Resized)
@@ -701,7 +788,7 @@ int main()
 			}
 		}
 		time = clock.getElapsedTime();
-		if (time.asMilliseconds() > 15) {
+		if (time.asMilliseconds() > 20) {
 			if (activity == 1)
 			{
 				game.move();
