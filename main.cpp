@@ -1,3 +1,22 @@
+/*------------------------------------------------------------
+Tytul gry: Szalone Asteroidy
+
+Co zrealizowalem w biezacym tygodniu?
+-wyswietlanie napisu game_over po zakonczeniu gry
+-zapisywanie informacji o czasie do pliku
+-sortowanie najlepszych wynikow
+-punktowanie graczy za czas gry, przegranie, wygranie
+
+Co planuje na kolejny tydzien?
+-optymalizacja gry
+
+------------------------------------------------------------*/
+
+/*------------------------------------------------------------
+
+Program glowny
+
+------------------------------------------------------------*/
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -151,7 +170,7 @@ void menu::addScores(FILE *fp) {
 					other::swap(playerInfoArray[j], playerInfoArray[j + 1]);
 		}
 		for (int i = 0; i < 5; i++) {
-			scoresText[i+1].setString((i < recordsN) ? (playerInfoArray[i].name + std::string("_") + std::to_string(playerInfoArray[i].points)) : std::string("_"));
+			scoresText[i + 1].setString((i < recordsN) ? (playerInfoArray[i].name + std::string("_") + std::to_string(playerInfoArray[i].points)) : std::string("_"));
 		}
 		delete[] playerInfoArray;
 		fclose(fp);
@@ -672,7 +691,7 @@ public:
 	void move();
 	void detectCollisions(sf::RenderWindow &window);
 	void setKey(int key, int playerNumber, bool value);
-	void setPause(bool which, bool val);
+	void setPause(bool which);
 	bool getPause() { return pause; };
 	void savePlayerInfo();
 	void saveGameStatus();
@@ -681,8 +700,8 @@ public:
 };
 game::game()
 {
-	playersArray = new player[other::MAX_PLAYERS];
-	playersInfoArray = new playerInfo[other::MAX_PLAYERS];
+	playersArray = new player[2];
+	playersInfoArray = new playerInfo[2];
 	bulletsArray = new bullet[MAX_BULLETS];
 	asteroidsArray = new asteroid[MAX_ASTEROIDS];
 	backgroundAsteroidsArray = new backgroundAsteroid[MAX_BACKGROUND_ASTEROIDS];
@@ -823,6 +842,7 @@ void game::detectCollisions(sf::RenderWindow &window)
 						}
 						savePlayerInfo();
 						gameOver = true;
+						break;
 					}
 				}
 			}
@@ -918,24 +938,9 @@ void game::setKey(int key, int playerNumber, bool value) {
 		}
 	}
 }
-void game::setPause(bool which, bool val) {
+void game::setPause(bool which) {
 	whichPause = which;
-	if (tmpPauseKey == 1 && val == 1) {
-		pause = val;
-		tmpPauseKey = 0;
-	}
-	else if (tmpPauseKey == 1 && val == 0) {
-		pause = val;
-		tmpPauseKey = 1;
-	}
-	else if (tmpPauseKey == 0 && val == 1) {
-		pause = !val;
-		tmpPauseKey = 1;
-	}
-	else if (tmpPauseKey == 0 && val == 0) {
-		pause = !val;
-		tmpPauseKey = 0;
-	}
+	pause = !pause;
 }
 void game::savePlayerInfo() {
 	FILE *fp;
@@ -1105,10 +1110,10 @@ int main()
 						}
 					}
 					else if (event.key.code == sf::Keyboard::F1) {
-						game.setPause(0, 1);
+						game.setPause(0);
 					}
 					else if (event.key.code == sf::Keyboard::Escape) {
-						game.setPause(1, 1);
+						game.setPause(1);
 					}
 					else if (event.key.code == sf::Keyboard::S && game.getPause()) {
 						game.saveGameStatus();
@@ -1125,12 +1130,6 @@ int main()
 					else if (event.key.code == sf::Keyboard::Up || event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right || event.key.code == sf::Keyboard::Enter) {
 						game.setKey(event.key.code, 1, false);
 					}
-					else if (event.key.code == sf::Keyboard::F1) {
-						game.setPause(0, 0);
-					}
-					else if (event.key.code == sf::Keyboard::Escape) {
-						game.setPause(1, 0);
-					}
 				}
 			}
 			if (event.type == sf::Event::Resized)
@@ -1145,7 +1144,7 @@ int main()
 			{
 				game.move();
 				game.detectCollisions(window);
-				if(game.getGameOver()) activity = 2;
+				if (game.getGameOver()) activity = 2;
 			}
 			window.clear();
 			if (activity == 0) {
