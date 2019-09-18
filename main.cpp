@@ -1,22 +1,3 @@
-/*------------------------------------------------------------
-Tytul gry: Szalone Asteroidy
-
-Co zrealizowalem w biezacym tygodniu?
--wyswietlanie napisu game_over po zakonczeniu gry
--zapisywanie informacji o czasie do pliku
--sortowanie najlepszych wynikow
--punktowanie graczy za czas gry, przegranie, wygranie
-
-Co planuje na kolejny tydzien?
--optymalizacja gry
-
-------------------------------------------------------------*/
-
-/*------------------------------------------------------------
-
-Program glowny
-
-------------------------------------------------------------*/
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -78,14 +59,14 @@ endScreen::endScreen() {
 	text.setString("game_over");
 	text.setPosition(sf::Vector2f(40, HEIGHT - 100));
 }
+
 void endScreen::draw(sf::RenderWindow &window) {
 	window.draw(text);
 	if (frames >= 50) window.close();
 	frames++;
 }
 
-class menu
-{
+class menu {
 private:
 	sf::Font font;
 	sf::Text menuText[MAX_MENU_LEVELS];
@@ -106,8 +87,8 @@ public:
 	bool getNext() { return next; };
 	void clearScores();
 };
-menu::menu()
-{
+
+menu::menu() {
 	selectedItem = 1;
 	FILE *fp;
 	fp = fopen("save.dat", "rb");
@@ -138,7 +119,6 @@ menu::menu()
 	menuText[4].setCharacterSize(40);
 	menuText[4].setString("quit");
 	menuText[4].setPosition(sf::Vector2f(40, HEIGHT - 40 - (MAX_MENU_LEVELS - 4) * 60));
-
 	for (int i = 0; i < 6; i++) {
 		scoresText[i].setFont(font);
 		scoresText[i].setCharacterSize(40);
@@ -152,6 +132,7 @@ menu::menu()
 	clearScoresText.setString("type_C_for_clear_scores");
 	clearScoresText.setPosition(sf::Vector2f(WIDTH - 265, HEIGHT - 30));
 }
+
 void menu::addScores(FILE *fp) {
 	if (fp != NULL) {
 		fseek(fp, 0, SEEK_END);
@@ -182,8 +163,7 @@ void menu::addScores(FILE *fp) {
 	}
 
 }
-void menu::moveUp()
-{
+void menu::moveUp() {
 	if (selectedItem == 1) {
 		if (!next) menuText[selectedItem].setString("one_player");
 		else menuText[selectedItem].setString("easy");
@@ -197,9 +177,7 @@ void menu::moveUp()
 	if ((selectedItem == 4) && !loadAvailable) {
 		selectedItem -= 2;
 	}
-	else {
-		selectedItem--;
-	}
+	else selectedItem--;
 	if (selectedItem < 1) selectedItem = MAX_MENU_LEVELS - 1;
 	if (selectedItem == 1) {
 		if (!next) menuText[selectedItem].setString("one_player <<");
@@ -212,8 +190,8 @@ void menu::moveUp()
 	else if (selectedItem == 3) menuText[selectedItem].setString("load_game <<");
 	else if (selectedItem == 4) menuText[selectedItem].setString("quit <<");
 }
-void menu::moveDown()
-{
+
+void menu::moveDown() {
 	if (selectedItem == 1) {
 		if (!next) menuText[selectedItem].setString("one_player");
 		else menuText[selectedItem].setString("easy");
@@ -227,9 +205,7 @@ void menu::moveDown()
 	if ((selectedItem == 2) && !loadAvailable) {
 		selectedItem += 2;
 	}
-	else {
-		selectedItem++;
-	}
+	else selectedItem++;
 	if (selectedItem >= MAX_MENU_LEVELS) selectedItem = 1;
 	if (selectedItem == 1) {
 		if (!next) menuText[selectedItem].setString("one_player <<");
@@ -242,24 +218,24 @@ void menu::moveDown()
 	else if (selectedItem == 3) menuText[selectedItem].setString("load_game <<");
 	else if (selectedItem == 4) menuText[selectedItem].setString("quit <<");
 }
-void menu::draw(sf::RenderWindow &window)
-{
-	for (int i = 0; i < MAX_MENU_LEVELS; i++)
-	{
+
+void menu::draw(sf::RenderWindow &window) {
+	for (int i = 0; i < MAX_MENU_LEVELS; i++) {
 		window.draw(menuText[i]);
 	}
-	for (int i = 0; i < 6; i++)
-	{
+	for (int i = 0; i < 6; i++) {
 		window.draw(scoresText[i]);
 	}
 	window.draw(clearScoresText);
 }
+
 void menu::setNext() {
 	next = 1;
 	selectedItem = 1;
 	menuText[1].setString("easy <<");
 	menuText[2].setString("hard");
 }
+
 void menu::clearScores() {
 	FILE *fp;
 	fp = fopen("best.dat", "wb");
@@ -304,13 +280,14 @@ public:
 	info();
 	void draw(sf::RenderWindow &window, std::string text1In = "", std::string text2In = "", std::string text3In = "");
 };
+
 info::info() {
 	font.loadFromFile("consola.ttf");
 	text.setFont(font);
 	text.setCharacterSize(40);
 	text.setFillColor(sf::Color::White);
-
 }
+
 void info::draw(sf::RenderWindow &window, std::string text1In, std::string text2In, std::string text3In) {
 	text.setPosition(40, HEIGHT - 180);
 	text.setString(text1In);
@@ -347,8 +324,7 @@ void backgroundAsteroid::draw(sf::RenderWindow &window) {
 	window.draw(backgroundAsteroidShape);
 }
 
-class asteroid
-{
+class asteroid {
 private:
 	bool alive;
 	float r;
@@ -369,8 +345,8 @@ public:
 	float getR() { return r; };
 	int getPhase() { return phase; };
 };
-asteroid::asteroid()
-{
+
+asteroid::asteroid() {
 	alive = false;
 	asteroidShape.setPointCount(5);
 	asteroidShape.setOutlineThickness(4.f);
@@ -378,8 +354,8 @@ asteroid::asteroid()
 	asteroidShape.setFillColor(sf::Color::Transparent);
 	asteroidShadow.setFillColor(sf::Color(255, 0, 97, 128));
 }
-void asteroid::init(float xIn, float yIn, int phaseIn, bool difficultyIn)
-{
+
+void asteroid::init(float xIn, float yIn, int phaseIn, bool difficultyIn) {
 	difficulty = difficultyIn;
 	phase = phaseIn;
 	r = (float)80 - phase * 30;
@@ -421,17 +397,16 @@ void asteroid::init(float xIn, float yIn, int phaseIn, bool difficultyIn)
 	asteroidShadow.setPosition(asteroidShape.getPosition());
 	alive = true;
 }
-void asteroid::draw(sf::RenderWindow &window)
-{
+
+void asteroid::draw(sf::RenderWindow &window) {
 	if (USE_SHADOW) {
 		window.draw(asteroidShadow);
 	}
 	window.draw(asteroidShape);
 }
-void asteroid::move()
-{
-	sf::Vector2f newPos = asteroidShape.getPosition() + deltaPosition;
 
+void asteroid::move() {
+	sf::Vector2f newPos = asteroidShape.getPosition() + deltaPosition;
 	if (newPos.x >= WIDTH + r * 1.1) {
 		newPos.x = -(r * 1.1);
 	}
@@ -449,8 +424,7 @@ void asteroid::move()
 	asteroidShape.rotate(deltaAlfa);
 }
 
-class bullet
-{
+class bullet {
 private:
 	int playerId;
 	bool alive;
@@ -468,12 +442,14 @@ public:
 	int getPlayerId() { return playerId; };
 	sf::Vector2f getPosition() { return bulletShape.getPosition(); };
 };
+
 bullet::bullet() {
 	alive = false;
 	aliveFor = 0;
 	bulletShape.setRadius(4.f);
 	bulletShape.setOrigin(sf::Vector2f(4, 4));
 }
+
 void bullet::init(sf::Vector2f positionIn, sf::Vector2f deltaPositionIn, int playerIdIn) {
 	bulletShape.setPosition(positionIn);
 	deltaPosition.x = deltaPositionIn.x;
@@ -482,15 +458,15 @@ void bullet::init(sf::Vector2f positionIn, sf::Vector2f deltaPositionIn, int pla
 	aliveFor = 0;
 	alive = true;
 }
-void bullet::draw(sf::RenderWindow &window)
-{
+
+void bullet::draw(sf::RenderWindow &window) {
 	window.draw(bulletShape);
 }
+
 void bullet::move() {
 	if (alive) {
 		if (bulletShape.getPosition().x > WIDTH || bulletShape.getPosition().x < 0) deltaPosition.x = -deltaPosition.x;
 		if (bulletShape.getPosition().y > HEIGHT || bulletShape.getPosition().y < 0) deltaPosition.y = -deltaPosition.y;
-
 		bulletShape.setPosition(bulletShape.getPosition() + deltaPosition);
 		if (aliveFor > 40) {
 			alive = false;
@@ -500,8 +476,7 @@ void bullet::move() {
 	}
 }
 
-class player
-{
+class player {
 private:
 	int id;
 	int points;
@@ -543,8 +518,8 @@ public:
 		return shapeAlfa;
 	};
 };
-player::player()
-{
+
+player::player() {
 	alive = false;
 	up = false;
 	left = false;
@@ -578,8 +553,8 @@ player::player()
 	fire.setScale(sf::Vector2f(3, 3));
 	fire.setOrigin(12, 30);
 }
-void player::init(int idIn, float xIn, float yIn, float alfaIn)
-{
+
+void player::init(int idIn, float xIn, float yIn, float alfaIn) {
 	id = idIn;
 	points = 0;
 	float x, y;
@@ -598,25 +573,24 @@ void player::init(int idIn, float xIn, float yIn, float alfaIn)
 	playerShape.setRotation((alfaIn < 0) ? other::rand(0, 360) : alfaIn);
 	alive = true;
 }
-void player::draw(sf::RenderWindow &window)
-{
+
+void player::draw(sf::RenderWindow &window) {
 	if (USE_SHADOW) {
 		window.draw(playerShadow);
 	}
 	if (up) {
 		window.draw(fire);
 	}
-
 	window.draw(playerShape);
 }
+
 void player::move() {
 	if (left && !right) {
-		playerShape.rotate(-2.5);
+		playerShape.rotate(-3.5);
 	}
 	else if (right && !left) {
-		playerShape.rotate(2.5);
+		playerShape.rotate(3.5);
 	}
-
 	if (up) {
 		deltaPosition.x = std::max(-maxPositionDelta, std::min(maxPositionDelta, deltaPosition.x + sinf(playerShape.getRotation() * (float)M_PI / 180) * acceleration));
 		deltaPosition.y = std::max(-maxPositionDelta, std::min(maxPositionDelta, deltaPosition.y - cosf(playerShape.getRotation() * (float)M_PI / 180) * acceleration));
@@ -628,7 +602,6 @@ void player::move() {
 		deltaPosition.y = (std::abs(deltaPosition.y) < 0.1) ? 0 : deltaPosition.y;
 	}
 	sf::Vector2f newPos = playerShape.getPosition() + deltaPosition;
-
 	if (newPos.x > WIDTH + 1.5f * r) {
 		newPos.x = -(1.5f * r);
 	}
@@ -653,11 +626,13 @@ void player::move() {
 		nFire = 0;
 	}
 }
+
 sf::Vector2f player::getBulletVelocity() {
 	float vX = sinf(playerShape.getRotation() * (float)M_PI / 180);
 	float vY = -cosf(playerShape.getRotation() * (float)M_PI / 180);
 	return sf::Vector2f(vX, vY);
 }
+
 void player::setName(char *nameIn) {
 	strcpy(name, nameIn);
 }
@@ -666,8 +641,7 @@ void player::setPoints(int pointsIn) {
 	points = pointsIn;
 }
 
-class game
-{
+class game {
 private:
 	asteroid *asteroidsArray;
 	bullet *bulletsArray;
@@ -698,16 +672,16 @@ public:
 	void loadGame();
 	bool getGameOver() { return gameOver; };
 };
-game::game()
-{
+
+game::game() {
 	playersArray = new player[2];
 	playersInfoArray = new playerInfo[2];
 	bulletsArray = new bullet[MAX_BULLETS];
 	asteroidsArray = new asteroid[MAX_ASTEROIDS];
 	backgroundAsteroidsArray = new backgroundAsteroid[MAX_BACKGROUND_ASTEROIDS];
 }
-void game::init()
-{
+
+void game::init() {
 	for (int i = 0; i < other::MAX_PLAYERS; i++) {
 		playersArray[i].init(i);
 	}
@@ -726,28 +700,22 @@ void game::init()
 	countFrames = 0;
 	tmpPauseKey = 1;
 }
-void game::draw(sf::RenderWindow &window)
-{
-	for (int i = 0; i < MAX_BACKGROUND_ASTEROIDS; i++)
-	{
+
+void game::draw(sf::RenderWindow &window) {
+	for (int i = 0; i < MAX_BACKGROUND_ASTEROIDS; i++) {
 		backgroundAsteroidsArray[i].draw(window);
 	}
-	for (int i = 0; i < MAX_ASTEROIDS; i++)
-	{
+	for (int i = 0; i < MAX_ASTEROIDS; i++) {
 		if (asteroidsArray[i].isAlive()) {
 			asteroidsArray[i].draw(window);
 		}
 	}
-
-	for (int i = 0; i < MAX_BULLETS; i++)
-	{
+	for (int i = 0; i < MAX_BULLETS; i++) {
 		if (bulletsArray[i].isAlive()) {
 			bulletsArray[i].draw(window);
 		}
 	}
-
-	for (int i = 0; i < other::MAX_PLAYERS; i++)
-	{
+	for (int i = 0; i < other::MAX_PLAYERS; i++) {
 		if (playersArray[i].isAlive()) {
 			playersArray[i].draw(window);
 		}
@@ -769,12 +737,11 @@ void game::draw(sf::RenderWindow &window)
 		}
 	}
 }
-void game::move()
-{
+
+void game::move() {
 	if (!pause) {
 		gameOver = true;
-		for (int i = 0; i < MAX_ASTEROIDS; i++)
-		{
+		for (int i = 0; i < MAX_ASTEROIDS; i++) {
 			if (asteroidsArray[i].isAlive()) {
 				gameOver = false;
 				asteroidsArray[i].move();
@@ -789,14 +756,12 @@ void game::move()
 				gameOver = true;
 			}
 		}
-		for (int i = 0; i < MAX_BULLETS; i++)
-		{
+		for (int i = 0; i < MAX_BULLETS; i++) {
 			if (bulletsArray[i].isAlive()) {
 				bulletsArray[i].move();
 			}
 		}
-		for (int i = 0; i < other::MAX_PLAYERS; i++)
-		{
+		for (int i = 0; i < other::MAX_PLAYERS; i++) {
 			if (playersArray[i].isAlive()) {
 				playersArray[i].move();
 			}
@@ -805,8 +770,7 @@ void game::move()
 		if (countFrames >= 50) {
 			countFrames = 0;
 			time++;
-			for (int i = 0; i < other::MAX_PLAYERS; i++)
-			{
+			for (int i = 0; i < other::MAX_PLAYERS; i++) {
 				if (playersArray[i].isAlive()) {
 					playersArray[i].addPoints(-50);
 				}
@@ -819,13 +783,11 @@ void game::move()
 		nGui++;
 	}
 }
-void game::detectCollisions(sf::RenderWindow &window)
-{
-	for (int i = 0; i < other::MAX_PLAYERS; i++)
-	{
+
+void game::detectCollisions(sf::RenderWindow &window) {
+	for (int i = 0; i < other::MAX_PLAYERS; i++) {
 		if (playersArray[i].isAlive()) {
-			for (int j = 0; j < MAX_ASTEROIDS; j++)
-			{
+			for (int j = 0; j < MAX_ASTEROIDS; j++) {
 				if (asteroidsArray[j].isAlive()) {
 					sf::Vector2f asteroidPosition = asteroidsArray[j].getPosition();
 					sf::Vector2f playerPosition = playersArray[i].getPosition();
@@ -848,11 +810,9 @@ void game::detectCollisions(sf::RenderWindow &window)
 			}
 		}
 	}
-	for (int i = 0; i < MAX_BULLETS; i++)
-	{
+	for (int i = 0; i < MAX_BULLETS; i++) {
 		if (bulletsArray[i].isAlive()) {
-			for (int j = 0; j < MAX_ASTEROIDS; j++)
-			{
+			for (int j = 0; j < MAX_ASTEROIDS; j++) {
 				if (asteroidsArray[j].isAlive()) {
 					sf::Vector2f asteroidPosition = asteroidsArray[j].getPosition();
 					sf::Vector2f bulletPosition = bulletsArray[i].getPosition();
@@ -882,6 +842,7 @@ void game::detectCollisions(sf::RenderWindow &window)
 		}
 	}
 }
+
 void game::setKey(int key, int playerNumber, bool value) {
 	if (!pause) {
 		if (playerNumber == 0) {
@@ -938,10 +899,12 @@ void game::setKey(int key, int playerNumber, bool value) {
 		}
 	}
 }
+
 void game::setPause(bool which) {
 	whichPause = which;
 	pause = !pause;
 }
+
 void game::savePlayerInfo() {
 	FILE *fp;
 	fp = fopen("best.dat", "a+b");
@@ -977,7 +940,6 @@ void game::saveGameStatus() {
 	gameStatus.difficulty = other::DIFFICULTY;
 	gameStatus.time = time;
 	gameStatus.framesAfterTime = countFrames;
-
 	for (int i = 0; i < other::MAX_PLAYERS; i++) {
 		strcpy(gameStatus.players[i].info.name, playersArray[i].getName());
 		gameStatus.players[i].info.points = playersArray[i].getPoints();
@@ -1001,6 +963,7 @@ void game::saveGameStatus() {
 		fclose(fp);
 	}
 }
+
 void game::loadGame() {
 	gameStatusStruct gameStatus;
 	FILE *fp;
@@ -1032,33 +995,25 @@ void game::loadGame() {
 		tmpPauseKey = 1;
 	}
 }
-int main()
-{
+
+int main() {
 	std::cout << "crazy_asteroids_author:_Karol_Konopka\n";
 	srand((unsigned int)time(NULL));
-
 	sf::Clock clock;
 	sf::Time time;
-
 	int activity = 0;
 	menu menu;
 	game game;
 	endScreen end;
-
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 16;
-
 	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "crazy_asteroids", sf::Style::Default, settings);
-	while (window.isOpen())
-	{
+	while (window.isOpen()) {
 		sf::Event event;
-		while (window.pollEvent(event))
-		{
+		while (window.pollEvent(event)) {
 			if (event.type == sf::Event::Closed) window.close();
-			if (event.type == sf::Event::KeyPressed)
-			{
-				if (activity == 0)
-				{
+			if (event.type == sf::Event::KeyPressed) {
+				if (activity == 0) {
 					if (event.key.code == sf::Keyboard::W) {
 						menu.moveUp();
 					}
@@ -1132,16 +1087,14 @@ int main()
 					}
 				}
 			}
-			if (event.type == sf::Event::Resized)
-			{
+			if (event.type == sf::Event::Resized) {
 				sf::Vector2u size(WIDTH, HEIGHT);
 				window.setSize(size);
 			}
 		}
 		time = clock.getElapsedTime();
 		if (time.asMilliseconds() > 20) {
-			if (activity == 1)
-			{
+			if (activity == 1) {
 				game.move();
 				game.detectCollisions(window);
 				if (game.getGameOver()) activity = 2;
